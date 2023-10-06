@@ -33,7 +33,7 @@ describe('Fetch question comments (E2E)', () => {
     await app.init()
   })
 
-  it('[GET] /questions/:questionId/comments', async () => {
+  test('[GET] /questions/:questionId/comments', async () => {
     const user = await studentFactory.makePrismaStudent({ name: 'John Doe' })
 
     const accessToken = jwt.sign({ sub: user.id.toString() })

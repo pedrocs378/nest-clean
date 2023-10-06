@@ -6,30 +6,27 @@ import request from 'supertest'
 import { StudentFactory } from 'test/factories/make-student'
 import { QuestionFactory } from 'test/factories/make-question'
 import { AnswerFactory } from 'test/factories/make-answer'
-import { AnswerCommentFactory } from 'test/factories/make-answer-comment'
+
+import { waitFor } from 'test/utils/wait-for'
+
+import { DomainEvents } from '@/core/events/domain-events'
 
 import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { DatabaseModule } from '@/infra/database/database.module'
 import { AppModule } from '@/infra/app.module'
 
-describe('Delete answer (E2E)', () => {
+describe('On question best answer chosen (E2E)', () => {
   let app: INestApplication
   let prisma: PrismaService
   let jwt: JwtService
   let questionFactory: QuestionFactory
   let answerFactory: AnswerFactory
-  let answerCommentFactory: AnswerCommentFactory
   let studentFactory: StudentFactory
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule, DatabaseModule],
-      providers: [
-        StudentFactory,
-        QuestionFactory,
-        AnswerFactory,
-        AnswerCommentFactory,
-      ],
+      providers: [StudentFactory, QuestionFactory, AnswerFactory],
     }).compile()
 
     app = moduleRef.createNestApplication()
@@ -38,12 +35,13 @@ describe('Delete answer (E2E)', () => {
     studentFactory = moduleRef.get(StudentFactory)
     questionFactory = moduleRef.get(QuestionFactory)
     answerFactory = moduleRef.get(AnswerFactory)
-    answerCommentFactory = moduleRef.get(AnswerCommentFactory)
+
+    DomainEvents.shouldRun = true
 
     await app.init()
   })
 
-  test('[DELETE] /questions/:id', async () => {
+  test('should send a notification when question best answer is chosen', async () => {
     const user = await studentFactory.makePrismaStudent()
 
     const accessToken = jwt.sign({ sub: user.id.toString() })
@@ -57,24 +55,19 @@ describe('Delete answer (E2E)', () => {
       authorId: user.id,
     })
 
-    const answerComment = await answerCommentFactory.makePrismaAnswerComment({
-      answerId: answer.id,
-      authorId: user.id,
-    })
+    const answerId = answer.id.toString()
 
-    const answerCommentId = answerComment.id.toString()
-
-    const response = await request(app.getHttpServer())
-      .delete(`/answers/comments/${answerCommentId}`)
+    await request(app.getHttpServer())
+      .patch(`/answers/${answerId}/choose-as-best`)
       .set('Authorization', `Bearer ${accessToken}`)
       .send()
 
-    expect(response.statusCode).toBe(204)
+    await waitFor(async () => {
+      const notificationOnDatabase = await prisma.notification.findFirst({
+        where: { recipientId: user.id.toString() },
+      })
 
-    const answerCommentOnDatabase = await prisma.question.findUnique({
-      where: { id: answerCommentId },
+      expect(notificationOnDatabase).toBeTruthy()
     })
-
-    expect(answerCommentOnDatabase).toBeNull()
   })
 })

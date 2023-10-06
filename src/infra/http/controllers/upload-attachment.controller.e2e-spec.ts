@@ -28,7 +28,7 @@ describe('Upload attachment (E2E)', () => {
     await app.init()
   })
 
-  it('[POST] /attachments', async () => {
+  test('[POST] /attachments', async () => {
     const user = await studentFactory.makePrismaStudent()
 
     const accessToken = jwt.sign({ sub: user.id.toString() })

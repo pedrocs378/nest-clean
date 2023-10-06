@@ -43,7 +43,7 @@ describe('Get question by slug (E2E)', () => {
     await app.init()
   })
 
-  it('[GET] /questions/:slug', async () => {
+  test('[GET] /questions/:slug', async () => {
     const user = await studentFactory.makePrismaStudent({ name: 'John Doe' })
 
     const accessToken = jwt.sign({ sub: user.id.toString() })
