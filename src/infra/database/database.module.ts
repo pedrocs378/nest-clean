@@ -20,9 +20,12 @@ import { PrismaStudentsRepository } from './prisma/repositories/prisma-students.
 import { PrismaAttachmentsRepository } from './prisma/repositories/prisma-attachments.repository'
 import { PrismaNotificationsRepository } from './prisma/repositories/prisma-notifications.repository'
 
+import { CacheModule } from '../cache/cache.module'
+
 import { PrismaService } from './prisma/prisma.service'
 
 @Module({
+  imports: [CacheModule],
   providers: [
     PrismaService,
     { provide: QuestionsRepository, useClass: PrismaQuestionsRepository },
